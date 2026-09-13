@@ -1,0 +1,6 @@
+databricks-sdk
+databricks-vectorsearch
+databricks-sql-connector
+databricks-langchain
+langchain
+langchain-core

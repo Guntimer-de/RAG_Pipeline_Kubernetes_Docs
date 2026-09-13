@@ -1,0 +1,23 @@
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.token
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Raw / processed data caches (regenerate via scripts/01_download_data.py, scripts/02_chunk_documents.py)
+data/raw/
+data/processed/
+
+# OS
+.DS_Store
+
+# Databricks
+.databricks/
