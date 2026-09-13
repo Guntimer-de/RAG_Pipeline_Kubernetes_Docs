@@ -45,7 +45,8 @@ agent/rag_agent.py  (LangChain tool-calling agent, databricks-meta-llama-3-3-70b
 |---|---|---|
 | `rag_pipeline.default.rag_raw_volume` | Volume | Landing zone for raw downloaded files |
 | `rag_pipeline.default.rag_bronze_files` | Delta table | File-level metadata (path, size, timestamps) |
-| `rag_pipeline.default.rag_silver_chunks` | Delta table | Chunked text + metadata, CDF enabled |
+| `rag_pipeline.default.rag_silver_chunks` | Delta table | Chunked text + metadata, CDF enabled. Populated by the local script + SQL load path (`scripts/02_chunk_documents.py` + `sql/02_silver_chunks.sql`); this is what Gold and the agent read from today |
+| `rag_pipeline.default.rag_silver_chunks_dlt` | Delta table | Same chunking logic, produced natively by the `rag_silver_chunking` DLT pipeline. Separate table because a DLT pipeline can only materialize tables it creates itself -- it can't adopt a pre-existing table. Verified to produce identical output (546 chunks / 14 docs) to the SQL-loaded table. To make DLT the single source of truth, point Gold/the agent at this table instead (or drop `rag_silver_chunks` and rename this one) |
 | `rag_pipeline.default.rag_gold_doc_summary` | Delta table | Per-document chunk statistics |
 | `rag_pipeline.default.rag_gold_query_audit_log` | Delta table | Agent query/tool-use audit trail |
 | `rag_vs_endpoint` | Vector Search endpoint | STANDARD tier |
@@ -67,6 +68,12 @@ agent/rag_agent.py  (LangChain tool-calling agent, databricks-meta-llama-3-3-70b
   endpoint + Delta Sync Index via the `databricks-vectorsearch` SDK.
 - `agent/rag_agent.py` — the hybrid LangChain agent (semantic + structural
   tools), with every turn logged to the Gold audit table.
+- `agent/deploy_to_databricks.py` — uploads this repo's scripts/SQL into
+  `/Workspace/Users/<you>/rag_pipeline/` and registers the DLT pipeline
+  (`rag_silver_chunking`, serverless) and a Job (`rag_pipeline_gold_refresh`)
+  so the pipeline is visible and runnable from the Databricks console itself,
+  not just from a local checkout. Both have been run successfully at least
+  once against this workspace.
 
 ## Running it end to end
 
