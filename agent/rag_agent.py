@@ -76,10 +76,24 @@ def search_kubernetes_docs(query: str) -> str:
 @tool
 def query_gold_metrics(sql_query: str) -> str:
     """Run a read-only SQL query against the Gold layer for structural /
-    aggregate lookups: rag_pipeline.default.rag_gold_doc_summary (per-doc
-    chunk counts and sizes) and rag_pipeline.default.rag_gold_query_audit_log
-    (history of past questions asked to this agent). Only SELECT statements
-    are allowed. Always use fully-qualified table names."""
+    aggregate lookups (NOT for semantic/topic search -- use
+    search_kubernetes_docs for that). Only SELECT statements are allowed.
+    Always use fully-qualified table names and exactly these columns:
+
+    rag_pipeline.default.rag_gold_doc_summary
+      parent_source STRING (e.g. 'deployments.md'), chunk_count BIGINT,
+      total_chars BIGINT, avg_chunk_chars DOUBLE, first_silver_loaded_at
+      TIMESTAMP, last_silver_loaded_at TIMESTAMP, file_size_bytes BIGINT,
+      bronze_ingested_at TIMESTAMP.
+      This table has no topic/content column -- it cannot answer "which doc
+      has the most chunks about <topic>"; it can only answer "how many
+      chunks/chars does <parent_source> have in total".
+
+    rag_pipeline.default.rag_gold_query_audit_log
+      query_id STRING, asked_by STRING, question STRING, tools_used
+      ARRAY<STRING>, retrieved_chunk_ids ARRAY<STRING>, answer_preview
+      STRING, latency_ms BIGINT, created_at TIMESTAMP.
+    """
     normalized = sql_query.strip().rstrip(";")
     if not normalized.lower().startswith("select"):
         return "Error: only SELECT statements are permitted for this tool."
@@ -92,19 +106,35 @@ def query_gold_metrics(sql_query: str) -> str:
     return "\n".join(str(r) for r in rows[:50])
 
 
+def _array_literal(values: list[str]) -> tuple[str, list[str]]:
+    """Build a parameterized `array(?, ?, ...)` SQL fragment.
+
+    The databricks-sql-connector silently drops Python lists bound via a
+    plain `?` placeholder into ARRAY<STRING> columns (writes an empty array
+    regardless of input) -- ARRAY isn't supported by its scalar parameter
+    binding, so each element must be its own placeholder inside an
+    array(...) call instead.
+    """
+    if not values:
+        return "CAST(array() AS ARRAY<STRING>)", []
+    return f"array({', '.join(['?'] * len(values))})", list(values)
+
+
 def log_turn(question: str, answer: str, tools_used: list[str], latency_ms: int, asked_by: str = "cli-user"):
+    tools_sql, tools_params = _array_literal(tools_used)
+    chunks_sql, chunks_params = _array_literal(_retrieved_chunk_ids[:20])
     _run_sql(
-        """
+        f"""
         INSERT INTO rag_pipeline.default.rag_gold_query_audit_log
         (query_id, asked_by, question, tools_used, retrieved_chunk_ids, answer_preview, latency_ms, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, {tools_sql}, {chunks_sql}, ?, ?, ?)
         """,
         (
             str(uuid.uuid4()),
             asked_by,
             question,
-            tools_used,
-            _retrieved_chunk_ids[:20],
+            *tools_params,
+            *chunks_params,
             answer[:500],
             latency_ms,
             datetime.now(timezone.utc),
@@ -125,14 +155,25 @@ def build_agent() -> AgentExecutor:
                 "query_gold_metrics for questions about corpus statistics or "
                 "past usage, and combine both when a question needs both "
                 "('which doc has the most chunks about Y, and what does it say'). "
-                "Cite the source file for any claim drawn from search results.",
+                "Cite the source file for any claim drawn from search results. "
+                "If a question needs a second tool, call it through the normal "
+                "tool-calling mechanism -- never write out a function call as "
+                "text in your answer. If you choose not to call a tool, just "
+                "answer with what you already have instead of describing the "
+                "tool call you would make.",
             ),
             ("human", "{input}"),
             MessagesPlaceholder("agent_scratchpad"),
         ]
     )
     agent = create_tool_calling_agent(llm, tools, prompt)
-    return AgentExecutor(agent=agent, tools=tools, verbose=True)
+    return AgentExecutor(
+        agent=agent,
+        tools=tools,
+        verbose=True,
+        max_iterations=6,
+        return_intermediate_steps=True,
+    )
 
 
 def run(question: str) -> str:
