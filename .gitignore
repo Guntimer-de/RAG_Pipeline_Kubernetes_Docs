@@ -21,3 +21,6 @@ data/processed/
 
 # Databricks
 .databricks/
+
+# Claude Code local settings (machine-specific permissions)
+.claude/
