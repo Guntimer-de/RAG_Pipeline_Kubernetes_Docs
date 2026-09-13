@@ -68,12 +68,11 @@ agent/rag_agent.py  (LangChain tool-calling agent, databricks-meta-llama-3-3-70b
   endpoint + Delta Sync Index via the `databricks-vectorsearch` SDK.
 - `agent/rag_agent.py` — the hybrid LangChain agent (semantic + structural
   tools), with every turn logged to the Gold audit table.
-- `agent/deploy_to_databricks.py` — uploads this repo's scripts/SQL into
-  `/Workspace/Users/<you>/rag_pipeline/` and registers the DLT pipeline
-  (`rag_silver_chunking`, serverless) and a Job (`rag_pipeline_gold_refresh`)
-  so the pipeline is visible and runnable from the Databricks console itself,
-  not just from a local checkout. Both have been run successfully at least
-  once against this workspace.
+This code has also been deployed directly into the Databricks workspace itself
+(uploaded to `/Workspace/Users/<you>/rag_pipeline/`, with a registered DLT
+pipeline `rag_silver_chunking` and a Job `rag_pipeline_gold_refresh`), so it's
+browsable and runnable from the console, not just from a local checkout. Both
+have been run successfully at least once against this workspace.
 
 ## Running it end to end
 
