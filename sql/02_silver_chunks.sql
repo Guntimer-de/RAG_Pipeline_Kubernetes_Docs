@@ -1,11 +1,17 @@
 -- ============================================================================
--- Silver layer: chunked document table, ready for embedding + vector indexing
--- Catalog: rag_pipeline | Schema: default
+-- RETIRED -- kept for reference only. DO NOT RUN AGAINST A LIVE WORKSPACE.
 --
--- This file documents the schema and the load pattern used to populate
--- rag_silver_chunks from ./data/processed/chunks.jsonl (produced by
--- scripts/02_chunk_documents.py, or by pipelines/silver_chunking_dlt.py
--- when running on a real Spark cluster / DLT pipeline).
+-- rag_pipeline.default.rag_silver_chunks is now owned exclusively by the
+-- rag_silver_chunking DLT pipeline (pipelines/silver_chunking_dlt.py).
+-- Running this file's CREATE OR REPLACE TABLE would strip the table back to
+-- a plain managed table, which breaks the DLT pipeline's next run (a DLT
+-- pipeline can only materialize tables it created itself -- this is exactly
+-- the table-ownership collision documented in README.md's "Notes" section).
+--
+-- This file documents the schema and the load pattern originally used to
+-- populate the table from ./data/processed/chunks.jsonl via
+-- scripts/02_chunk_documents.py, before the DLT pipeline became the single
+-- source of truth.
 --
 -- delta.enableChangeDataFeed = true is required so the Vector Search
 -- Delta Sync Index (see agent/create_vector_search_index.py) can

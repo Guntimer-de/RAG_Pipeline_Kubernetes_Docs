@@ -147,17 +147,8 @@ def rag_bronze_files_dlt():
 
 
 @dlt.table(
-    name="rag_silver_chunks_dlt",
-    comment=(
-        "Silver (DLT-native path): markdown-aware, recursively chunked document "
-        "text, produced natively in Spark/DLT rather than the local script + SQL "
-        "load path. Named *_dlt because a DLT pipeline can only materialize "
-        "tables it creates itself -- it cannot adopt the pre-existing "
-        "rag_silver_chunks table that Gold/the agent already depend on. To make "
-        "this pipeline the single source of truth, point downstream consumers "
-        "at this table (or rename it to rag_silver_chunks after dropping the "
-        "SQL-loaded one)."
-    ),
+    name="rag_silver_chunks",
+    comment="Silver: markdown-aware, recursively chunked document text, ready for embedding/indexing. Produced natively by this DLT pipeline -- the single source of truth for Gold and the agent.",
     table_properties={
         "quality": "silver",
         "delta.enableChangeDataFeed": "true",
@@ -165,7 +156,7 @@ def rag_bronze_files_dlt():
 )
 @dlt.expect_or_drop("non_empty_chunk", "char_count > 0")
 @dlt.expect("reasonable_chunk_size", "char_count <= 2000")
-def rag_silver_chunks_dlt():
+def rag_silver_chunks():
     bronze = (
         dlt.read_stream("rag_bronze_files_dlt")
         .groupBy("file_path")
