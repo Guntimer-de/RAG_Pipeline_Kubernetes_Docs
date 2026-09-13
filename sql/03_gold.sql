@@ -22,7 +22,11 @@ SELECT
   b.bronze_ingested_at
 FROM rag_pipeline.default.rag_silver_chunks s
 JOIN rag_pipeline.default.rag_bronze_files b
-  ON s.source_file = b.file_path
+  -- joined on file_name rather than full path: rag_bronze_files.file_path is
+  -- prefixed "dbfs:/Volumes/..." (from read_files()) while
+  -- rag_silver_chunks.source_file is the plain "/Volumes/..." path used by
+  -- the PUT volume-upload API -- file_name is scheme-agnostic.
+  ON s.parent_source = b.file_name
 GROUP BY s.parent_source, b.file_size_bytes, b.bronze_ingested_at;
 
 -- Audit log: one row per agent turn, capturing which tool(s) it used and what
