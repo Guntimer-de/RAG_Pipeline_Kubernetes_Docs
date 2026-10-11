@@ -1,22 +1,3 @@
-# Databricks notebook source
-# Databricks Job entrypoint for the RAG agent -- runs agent/rag_agent.py's
-# `run()` on Databricks compute instead of a local laptop.
-#
-# Loads rag_agent.py's source directly via the Workspace export API and
-# exec()s it into this notebook's globals, rather than `%run` (whose path
-# resolver was consistently stripping the leading "/" off both
-# "/Workspace/Users/..." and "/Users/..." forms, quoted or not -- a parser
-# quirk in this workspace/runtime that a plain import can't work around
-# either, since uploaded .py files become Notebook objects rather than
-# files Python's import system can see). This approach only depends on the
-# Workspace API, which has been reliable throughout this deployment.
-#
-# Trigger with a question via Workflows "Run now with different parameters",
-# or via the Jobs API:
-#     w.jobs.run_now(job_id=..., notebook_params={"question": "..."})
-
-# COMMAND ----------
-
 import base64
 
 from databricks.sdk import WorkspaceClient
