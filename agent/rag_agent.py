@@ -1,8 +1,4 @@
 """
-Hybrid RAG agent: combines semantic document search (Vector Search index over
-rag_silver_chunks) with structural SQL lookups (Gold tables) behind a single
-LangChain tool-calling agent.
-
 Tools exposed to the LLM:
   - search_kubernetes_docs : semantic search over the Delta Sync Vector Search
       index (rag_chunks_index) -- "what does X mean / how do I configure Y".
@@ -13,11 +9,8 @@ Tools exposed to the LLM:
 Every turn is logged to rag_pipeline.default.rag_gold_query_audit_log so the
 Data Tool itself can be queried for usage analytics (a hybrid query in its
 own right).
-
-Requires DATABRICKS_HOST / DATABRICKS_TOKEN in the environment:
-    pip install databricks-langchain langchain databricks-sdk
-    set -a && source .env && set +a && python3 agent/rag_agent.py "What is a Kubernetes Deployment?"
 """
+
 import queue
 import sys
 import threading
